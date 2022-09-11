@@ -1,6 +1,7 @@
 # this code is not using scrapy. Only using playwright
 from os import sync
 from playwright.sync_api import sync_playwright
+from credentials import Credentials as c  # this module located in the venv root
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=False, slow_mo=50)
@@ -10,11 +11,11 @@ with sync_playwright() as p:
     )
     page.fill(
         "div.input-container:nth-child(3) > div:nth-child(2) > input:nth-child(1)",
-        "balisunrise@gmail.com",
+        c.username,
     )
     page.fill(
         "div.input-container:nth-child(4) > div:nth-child(2) > input:nth-child(1)",
-        "dk3245uf",
+        c.password,
     )
     page.click("button.btn:nth-child(6)")
     page.goto(

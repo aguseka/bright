@@ -17,6 +17,7 @@ class BrightspiderSpider(scrapy.Spider):
     )
 
     start_urls = "https://www.brighton.co.id/cari-properti/?Keyword=&Transaction=&Type=&Certificate=&Province=Bali&Location=&Area=&KT=&KM=&PriceMin=&PriceMax=&LTMin=&LTMax=&LBMin=&LBMax=&OrderBy=5&page=1"
+    second_url = "https://www.brighton.co.id/"
 
     def start_requests(self):
         yield scrapy.Request(
@@ -25,19 +26,23 @@ class BrightspiderSpider(scrapy.Spider):
                 playwright=True,
                 playwright_include_page=True,
                 playwright_page_methods={
+                    # "wait_for_selector": PageMethod(
+                    #    "wait_for_selector",
+                    #    selector="button.btn:nth-child(6)",
+                    # ),
                     "fill": PageMethod(
                         "fill",
-                        selector="html.fa-events-icons-failed body div#content_wrapper.bg-agent-login div.container div.content_wrapper div.row div.col-lg-12 form#form_login div.input-container",
+                        selector="div.input-container:nth-child(3) > div:nth-child(2) > input:nth-child(1)",
                         value=c.username,  # type your username manually here
                     ),
                     "fill": PageMethod(
                         "fill",
-                        selector="html.fa-events-icons-failed body div#content_wrapper.bg-agent-login div.container div.content_wrapper div.row div.col-lg-12 form#form_login div.input-container div.input-field input.custominput.inputformvisitor",
+                        selector="div.input-container:nth-child(4) > div:nth-child(2) > input:nth-child(1)",
                         value=c.password,  # and here is your password
                     ),
                     "click": PageMethod(
                         "click",
-                        selector="html.fa-events-icons-failed body div#content_wrapper.bg-agent-login div.container div.content_wrapper div.row div.col-lg-12 form#form_login button.btn.btn-block.btn-lg.btn-primary-custom",
+                        selector="button.btn:nth-child(6)",
                     ),
                     "goto": PageMethod("goto", url=self.start_urls),
                     "is_visible": PageMethod(
@@ -46,79 +51,32 @@ class BrightspiderSpider(scrapy.Spider):
                     ),
                 },
             ),
-            # callback=self.parse,
+            callback=self.parse,
         )
         # errback: self.errback
 
     async def parse(self, response):
-        total_pages = response.css(
-            "li.page-item.page-icon-attr.mx-1 a::attr(data-page)"
-        ).getall()
-        yield {"total_pages": total_pages[1]}
+        total_pages = int(
+            response.css(
+                "li.page-item.page-icon-attr.mx-1 a::attr(data-page)"
+            ).getall()[1]
+        )
+        # page = response.meta["playwright_page_methods"]['is_visible'].result
+        # title = await page.title()
+        # await page.context.close()  # close the context
+        # await page.close()
+        # add a loop here with total_pages as the maximum iteration
+        # reprocess the start_urls again where the pages adding up until reach the total_pages
+        list = response.css("div.col-12.col-md-6.col-lg-4.py-2.px-0.py-sm-2.px-md-2")
+        properties = list.css("h2.nama-properti::text").getall()
+        # add another loop here(inside the previous loop) to yield all of the data
+        yield {
+            "total_pages": total_pages,
+            "listing_title": properties,
+        }
 
     async def errback(
         self, failure
     ):  # to ensure the page is closed when there is an error.
         page = failure.request.meta["playwright_page"]
         await page.close()
-
-
-"""
-    def start_requests(self):
-        scrapy.Request(
-            url=self.start_urls,
-            meta=dict(
-                playwright=True,
-                playwright_include_page=True,
-                playwright_chromium_launch=True,
-                playwright_browser_headlessly=False,
-                playwright_page_methods={
-                    "is_visible": PageMethod(
-                        "is_visible", selector=".sertification-footer"
-                    ),
-                },
-            ),
-            callback=self.parse,
-        )
-
-    async def parse(self, response):
-        yield {"text": response.text}
-        pass
-
-    async def errback(
-        self, failure
-    ):  # to ensure the page is closed when there is an error.
-        page = failure.request.meta["playwright_page"]
-        await page.close()
-
-
-
-# this one without playwright, only using scrapy.
-def authentication_failed(response):
-    # TODO: Check the contents of the response and return True if it failed
-    # or False if it succeeded.
-    pass
-
-
-
-class BrightspiderSpider(scrapy.Spider):
-    name = "brightspider"
-    allowed_domains = ["brighton.co.id"]
-    start_urls = [
-        "https://www.brighton.co.id/visitor/login/?BackURL=https://www.brighton.co.id/"
-    ]
-
-    def parse(self, response):
-        return scrapy.FormRequest.from_response(
-            response,
-            formdata={"username": "balisunrise@gmail.com", "password": "dk3245uf"},
-            callback=self.after_login,
-        )
-
-    def after_login(self, response):
-        if authentication_failed(response):
-            self.logger.error("Login failed")
-            return
-        else:
-            yield {"text": response.text}
-            """
