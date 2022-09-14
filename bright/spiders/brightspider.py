@@ -3,11 +3,6 @@ import scrapy
 from scrapy_playwright.page import PageMethod
 from credentials import Credentials as c  # this module located in the venv root
 
-# logic:
-# login dulu pada pada start_request, tunggu sampai selesai loading, kemudian paste Url yang sudah berisi
-# seluruh listing yang ingin dicari
-# baru kemudian crawl satu persatu
-
 
 class BrightspiderSpider(scrapy.Spider):
     name = "brightspider"
@@ -16,8 +11,8 @@ class BrightspiderSpider(scrapy.Spider):
         "https://www.brighton.co.id/visitor/login/?BackURL=https://www.brighton.co.id/"
     )
 
-    start_urls = "https://www.brighton.co.id/cari-properti/?Keyword=&Transaction=&Type=&Certificate=&Province=Bali&Location=&Area=&KT=&KM=&PriceMin=&PriceMax=&LTMin=&LTMax=&LBMin=&LBMax=&OrderBy=5&page=12"
-    second_url = "https://www.brighton.co.id/"
+    start_urls = "https://www.brighton.co.id/cari-properti/?Keyword=&Transaction=&Type=&Certificate=&Province=Bali&Location=&Area=&KT=&KM=&PriceMin=&PriceMax=&LTMin=&LTMax=&LBMin=&LBMax=&OrderBy=5&page=1"
+    x = 1
 
     def start_requests(self):
         yield scrapy.Request(
@@ -26,10 +21,6 @@ class BrightspiderSpider(scrapy.Spider):
                 playwright=True,
                 playwright_include_page=True,
                 playwright_page_methods=[
-                    # "wait_for_selector": PageMethod(
-                    #    "wait_for_selector",
-                    #    selector="button.btn:nth-child(6)",
-                    # ),
                     PageMethod(
                         "is_visible",
                         selector="button.btn:nth-child(6)",
@@ -59,32 +50,47 @@ class BrightspiderSpider(scrapy.Spider):
                     PageMethod("goto", url=self.start_urls),
                 ],
             ),
-            callback=self.parse,
+            callback=self.gen_urls,
         )
-        errback: self.errback
 
-    async def parse(self, response):
-        total_pages = int(
-            response.css(
-                "li.page-item.page-icon-attr.mx-1 a::attr(data-page)"
-            ).getall()[1]
-        )
-        # page = response.meta["playwright_page_methods"]['is_visible'].result
-        # title = await page.title()
-        # await page.context.close()  # close the context
-        # await page.close()
-        # add a loop here with total_pages as the maximum iteration
-        # reprocess the start_urls again where the pages adding up until reach the total_pages
+    # errback: self.errback
+    def gen_urls(self, response):
+        for self.x in range(2, 6):
+            url = f"https://www.brighton.co.id/cari-properti/?Keyword=&Transaction=&Type=&Certificate=&Province=Bali&Location=&Area=&KT=&KM=&PriceMin=&PriceMax=&LTMin=&LTMax=&LBMin=&LBMax=&OrderBy=5&page={self.x}"
+            yield scrapy.Request(
+                url=url,
+                meta=dict(
+                    playwright=True,
+                    playwright_include_page=True,
+                    playwright_page_methods=[
+                        PageMethod(
+                            "is_visible",
+                            selector="div.col-12.col-md-6.col-lg-4.py-2.px-0.py-sm-2.px-md-2",
+                        ),
+                    ],
+                ),
+                callback=self.parse,
+            )
+
+    def parse(self, response):
         list = response.css("div.col-12.col-md-6.col-lg-4.py-2.px-0.py-sm-2.px-md-2")
-        properties = list.css("h2.nama-properti::text").getall()
-        # add another loop here(inside the previous loop) to yield all of the data
-        yield {
-            "total_pages": total_pages,
-            "listing_title": properties,
-        }
+        # properties = list.css(
+        #    "div.card.card-properti > a.record-page-visitor::attr(href)" # untuk halaman 1
+        # )
+        properties = list.css(
+            "div.card.card-properti-non-label > a.record-page-visitor::attr(href)"  # untuk halaman selain 1
+        )
+        for property in properties:
+            yield response.follow(property.get(), callback=self.detail_parse)
 
+    def detail_parse(self, response):
+        yield {"url": response.url}
+
+
+"""
     async def errback(
         self, failure
     ):  # to ensure the page is closed when there is an error.
         page = failure.request.meta["playwright_page"]
         await page.close()
+"""

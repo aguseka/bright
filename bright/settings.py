@@ -22,7 +22,7 @@ DOWNLOAD_HANDLERS = {
 ### This part is really important if we want to launch the browser and see what's going on
 PLAYWRIGHT_LAUNCH_OPTIONS = {
     "headless": False,
-    "slow_mo": 50,
+    "slow_mo": 100,
 }
 
 
