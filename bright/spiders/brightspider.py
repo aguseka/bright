@@ -16,7 +16,7 @@ class BrightspiderSpider(scrapy.Spider):
         "https://www.brighton.co.id/visitor/login/?BackURL=https://www.brighton.co.id/"
     )
 
-    start_urls = "https://www.brighton.co.id/cari-properti/?Keyword=&Transaction=&Type=&Certificate=&Province=Bali&Location=&Area=&KT=&KM=&PriceMin=&PriceMax=&LTMin=&LTMax=&LBMin=&LBMax=&OrderBy=5&page=1"
+    start_urls = "https://www.brighton.co.id/cari-properti/?Keyword=&Transaction=&Type=&Certificate=&Province=Bali&Location=&Area=&KT=&KM=&PriceMin=&PriceMax=&LTMin=&LTMax=&LBMin=&LBMax=&OrderBy=5&page=12"
     second_url = "https://www.brighton.co.id/"
 
     def start_requests(self):
@@ -25,35 +25,43 @@ class BrightspiderSpider(scrapy.Spider):
             meta=dict(
                 playwright=True,
                 playwright_include_page=True,
-                playwright_page_methods={
+                playwright_page_methods=[
                     # "wait_for_selector": PageMethod(
                     #    "wait_for_selector",
                     #    selector="button.btn:nth-child(6)",
                     # ),
-                    "fill": PageMethod(
+                    PageMethod(
+                        "is_visible",
+                        selector="button.btn:nth-child(6)",
+                    ),
+                    PageMethod(
                         "fill",
-                        selector="div.input-container:nth-child(3) > div:nth-child(2) > input:nth-child(1)",
+                        selector="html.fa-events-icons-failed body div#content_wrapper.bg-agent-login div.container div.content_wrapper div.row div.col-lg-12 form#form_login div.input-container div.input-field input.custominput.inputformvisitor",
                         value=c.username,  # type your username manually here
                     ),
-                    "fill": PageMethod(
+                    PageMethod(
                         "fill",
                         selector="div.input-container:nth-child(4) > div:nth-child(2) > input:nth-child(1)",
                         value=c.password,  # and here is your password
                     ),
-                    "click": PageMethod(
+                    PageMethod(
                         "click",
                         selector="button.btn:nth-child(6)",
                     ),
-                    "goto": PageMethod("goto", url=self.start_urls),
-                    "is_visible": PageMethod(
+                    PageMethod(
                         "is_visible",
-                        selector="#fullBody.scroll-down div.footer div.container-fluid.px-3.grid-container div.wrapper-2 img.sertification-footer.d-block.mx-auto.px-2.py-1",
+                        selector="html.fa-events-icons-failed body div.swal-overlay.swal-overlay--show-modal div.swal-modal div.swal-footer div.swal-button-container button.swal-button.swal-button--confirm",
                     ),
-                },
+                    PageMethod(
+                        "click",
+                        selector="html.fa-events-icons-failed body div.swal-overlay.swal-overlay--show-modal div.swal-modal div.swal-footer div.swal-button-container button.swal-button.swal-button--confirm",
+                    ),
+                    PageMethod("goto", url=self.start_urls),
+                ],
             ),
             callback=self.parse,
         )
-        # errback: self.errback
+        errback: self.errback
 
     async def parse(self, response):
         total_pages = int(
