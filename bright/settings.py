@@ -21,8 +21,8 @@ DOWNLOAD_HANDLERS = {
 
 ### This part is really important if we want to launch the browser and see what's going on
 PLAYWRIGHT_LAUNCH_OPTIONS = {
-    "headless": False,
-    "slow_mo": 100,
+    "headless": True,
+    "slow_mo": 150,
 }
 
 
@@ -37,7 +37,7 @@ TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 ROBOTSTXT_OBEY = False
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
-# CONCURRENT_REQUESTS = 32
+# CONCURRENT_REQUESTS = 5
 
 # Configure a delay for requests for the same website (default: 0)
 # See https://docs.scrapy.org/en/latest/topics/settings.html#download-delay

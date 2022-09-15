@@ -7,3 +7,12 @@ bright/spiders/credentials.py
 bright/spiders/.DS_Store
 bright/result.json
 *.DS_store
+bright/scrapy.log
+*.json
+bright/result2_4.json
+bright/result2_5_headlessTrue.json
+bright/result2_5_include_False.json
+bright/result2_6.json
+bright/result2_8.json
+bright/result2_9.json
+bright/result2_12.json

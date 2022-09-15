@@ -7,6 +7,9 @@ from credentials import Credentials as c  # this module located in the venv root
 class BrightspiderSpider(scrapy.Spider):
     name = "brightspider"
     allowed_domains = ["brighton.co.id"]
+    custom_settings = {
+        "CONCURRENT_REQUESTS_PER_DOMAIN": 3,
+    }
     login_url = (
         "https://www.brighton.co.id/visitor/login/?BackURL=https://www.brighton.co.id/"
     )
@@ -55,7 +58,14 @@ class BrightspiderSpider(scrapy.Spider):
 
     # errback: self.errback
     def gen_urls(self, response):
-        for self.x in range(2, 6):
+
+        total_pages = int(
+            response.css(
+                "li.page-item.page-icon-attr.mx-1 a::attr(data-page)"
+            ).getall()[1]
+        )
+
+        for self.x in range(2, 12):  # change the 6 here with total_pages
             url = f"https://www.brighton.co.id/cari-properti/?Keyword=&Transaction=&Type=&Certificate=&Province=Bali&Location=&Area=&KT=&KM=&PriceMin=&PriceMax=&LTMin=&LTMax=&LBMin=&LBMax=&OrderBy=5&page={self.x}"
             yield scrapy.Request(
                 url=url,
@@ -65,7 +75,7 @@ class BrightspiderSpider(scrapy.Spider):
                     playwright_page_methods=[
                         PageMethod(
                             "is_visible",
-                            selector="div.col-12.col-md-6.col-lg-4.py-2.px-0.py-sm-2.px-md-2",
+                            selector="div.containerDaftarProp",
                         ),
                     ],
                 ),
@@ -74,13 +84,10 @@ class BrightspiderSpider(scrapy.Spider):
 
     def parse(self, response):
         list = response.css("div.col-12.col-md-6.col-lg-4.py-2.px-0.py-sm-2.px-md-2")
-        # properties = list.css(
-        #    "div.card.card-properti > a.record-page-visitor::attr(href)" # untuk halaman 1
-        # )
-        properties = list.css(
-            "div.card.card-properti-non-label > a.record-page-visitor::attr(href)"  # untuk halaman selain 1
+        not_page_1 = list.css(
+            "div.card.card-properti-non-label > a.record-page-visitor::attr(href)"  # selector for pages other than page_1
         )
-        for property in properties:
+        for property in not_page_1:
             yield response.follow(property.get(), callback=self.detail_parse)
 
     def detail_parse(self, response):
@@ -93,4 +100,10 @@ class BrightspiderSpider(scrapy.Spider):
     ):  # to ensure the page is closed when there is an error.
         page = failure.request.meta["playwright_page"]
         await page.close()
+        
+        
+          total_pages = response.css(
+            "li.page-item.page-icon-attr.mx-1 a::attr(data-page)"
+        ).getall()
+        yield {"total_pages": total_pages[1]}
 """
